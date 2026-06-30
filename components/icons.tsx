@@ -107,6 +107,15 @@ export const SortIcon = (p: IconProps) => (
   </svg>
 );
 
+export const ChartIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+    <rect x="7" y="10" width="3" height="7" rx="1" />
+    <rect x="12" y="6" width="3" height="11" rx="1" />
+    <rect x="17" y="13" width="3" height="4" rx="1" />
+  </svg>
+);
+
 export const FilterIcon = (p: IconProps) => (
   <svg {...base(p)}>
     <path d="M22 3H2l8 9.46V19l4 2v-8.54z" />

@@ -10,6 +10,7 @@ import type {
   ChannelQuery,
   Filters,
   FilterOption,
+  Stats,
   Stream,
 } from "./types";
 
@@ -236,6 +237,54 @@ export async function getChannel(id: string): Promise<Channel | null> {
   return ds.byId.get(id) ?? null;
 }
 
+export async function getStats(): Promise<Stats> {
+  const ds = await getDataset();
+  const { channels, filters } = ds;
+
+  let totalStreams = 0;
+  let channelsWithLogo = 0;
+  let nsfwCount = 0;
+  let multiSourceCount = 0;
+
+  // Quality buckets keyed by display label.
+  const buckets = { "4K": 0, "Full HD": 0, HD: 0, SD: 0, Unknown: 0 };
+
+  for (const c of channels) {
+    totalStreams += c.streams.length;
+    if (c.logo) channelsWithLogo++;
+    if (c.isNsfw) nsfwCount++;
+    if (c.streams.length > 1) multiSourceCount++;
+
+    const q = c.bestQuality?.toLowerCase() ?? "";
+    const v = q.includes("4k") || q.includes("2160")
+      ? 2160
+      : Number(q.match(/(\d{3,4})/)?.[1] ?? 0);
+    if (v >= 2160) buckets["4K"]++;
+    else if (v >= 1080) buckets["Full HD"]++;
+    else if (v >= 720) buckets.HD++;
+    else if (v > 0) buckets.SD++;
+    else buckets.Unknown++;
+  }
+
+  return {
+    totalChannels: channels.length,
+    totalStreams,
+    totalCountries: filters.countries.length,
+    totalCategories: filters.categories.length,
+    totalLanguages: filters.languages.length,
+    channelsWithLogo,
+    nsfwCount,
+    multiSourceCount,
+    topCountries: filters.countries.slice(0, 12),
+    topCategories: filters.categories.slice(0, 12),
+    topLanguages: filters.languages.slice(0, 12),
+    qualityDistribution: Object.entries(buckets).map(([label, count]) => ({
+      label,
+      count,
+    })),
+  };
+}
+
 export async function queryChannels(q: ChannelQuery): Promise<ChannelPage> {
   const ds = await getDataset();
   const page = Math.max(1, q.page ?? 1);
@@ -244,10 +293,18 @@ export async function queryChannels(q: ChannelQuery): Promise<ChannelPage> {
 
   let items = ds.channels;
 
+  // Multi-select: OR within a facet, AND across facets.
+  const countries = q.countries?.length ? new Set(q.countries) : null;
+  const categories = q.categories?.length ? new Set(q.categories) : null;
+  const languages = q.languages?.length ? new Set(q.languages) : null;
+
   if (!q.nsfw) items = items.filter((c) => !c.isNsfw);
-  if (q.country) items = items.filter((c) => c.countryCode === q.country);
-  if (q.category) items = items.filter((c) => c.categoryIds.includes(q.category!));
-  if (q.language) items = items.filter((c) => c.languages.includes(q.language!));
+  if (countries)
+    items = items.filter((c) => c.countryCode && countries.has(c.countryCode));
+  if (categories)
+    items = items.filter((c) => c.categoryIds.some((id) => categories.has(id)));
+  if (languages)
+    items = items.filter((c) => c.languages.some((l) => languages.has(l)));
   if (search)
     items = items.filter(
       (c) =>

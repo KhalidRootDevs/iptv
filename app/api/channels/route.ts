@@ -10,12 +10,18 @@ export async function GET(req: NextRequest) {
   const sort: ChannelQuery["sort"] =
     sortParam === "country" || sortParam === "quality" ? sortParam : "name";
 
+  const list = (key: string): string[] | undefined => {
+    const raw = sp.get(key);
+    if (!raw) return undefined;
+    return raw.split(",").map((s) => s.trim()).filter(Boolean);
+  };
+
   try {
     const result = await queryChannels({
       search: sp.get("search") ?? undefined,
-      country: sp.get("country") ?? undefined,
-      category: sp.get("category") ?? undefined,
-      language: sp.get("language") ?? undefined,
+      countries: list("country"),
+      categories: list("category"),
+      languages: list("language"),
       nsfw: sp.get("nsfw") === "true",
       sort,
       page: Number(sp.get("page")) || 1,

@@ -100,13 +100,28 @@ export interface Filters {
 
 export interface ChannelQuery {
   search?: string;
-  country?: string;
-  category?: string;
-  language?: string;
+  countries?: string[];
+  categories?: string[];
+  languages?: string[];
   sort?: "name" | "country" | "quality";
   nsfw?: boolean;
   page?: number;
   pageSize?: number;
+}
+
+export interface Stats {
+  totalChannels: number;
+  totalStreams: number;
+  totalCountries: number;
+  totalCategories: number;
+  totalLanguages: number;
+  channelsWithLogo: number;
+  nsfwCount: number;
+  multiSourceCount: number;
+  topCountries: FilterOption[];
+  topCategories: FilterOption[];
+  topLanguages: FilterOption[];
+  qualityDistribution: { label: string; count: number }[];
 }
 
 export interface ChannelPage {
