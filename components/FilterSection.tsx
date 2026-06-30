@@ -48,7 +48,7 @@ export default function FilterSection({
         />
       )}
 
-      <div className="flex flex-col gap-0.5">
+      <div className="flex max-h-64 flex-col gap-0.5 overflow-y-auto pr-1">
         <FilterRow
           label="All"
           active={value === ""}
