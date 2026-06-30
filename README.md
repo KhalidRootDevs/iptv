@@ -11,14 +11,21 @@ links to publicly available sources.
 
 ## Features
 
-- 🌍 Browse channels by **country, category, and language** with live counts
+- 🌍 **Multi-select filters** — country, category, language, and quality (OR within a facet, AND across) with live counts
+- 🏷️ Horizontal **category chip bar** at the top of the list
 - 🔎 Instant **search** across channel and country names
 - ↕️ **Sort** by name, country, or stream quality
-- ▶️ In-app **HLS player** with automatic format support (hls.js + native Safari)
+- ▶️ Dedicated **watch page** with an HLS player (hls.js + native Safari)
+- 🔴 **Live** indicator replacing the seek bar for live streams; custom controls
+- ⌨️ **Keyboard shortcuts** — space/k play, m mute, f fullscreen, arrows volume/seek
+- ⭐ **Favorites** + 🕘 **recently watched** (localStorage, synced across tabs)
+- 🔗 **Copy stream link** / open in external player
+- 🧭 **Related channels** by country & category on the watch page
+- 📊 **Dashboard** with catalog stats, quality distribution, and top lists
 - 🔁 **Multi-source** channels — switch between alternate streams if one is down
 - 🖼️ Channel **logos**, quality badges, NSFW filtering
-- 📱 Fully **responsive** with a mobile filter drawer
-- 🎨 Modern dark UI, skeletons, graceful error states
+- 📱 Fully **responsive** with independent scroll panes and a mobile filter drawer
+- 🎨 Modern minimal dark UI, graceful error states
 
 ## Architecture
 

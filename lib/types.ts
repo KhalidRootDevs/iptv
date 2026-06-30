@@ -95,6 +95,7 @@ export interface Filters {
   countries: FilterOption[];
   categories: FilterOption[];
   languages: FilterOption[];
+  qualities: FilterOption[];
   totalChannels: number;
 }
 
@@ -103,6 +104,7 @@ export interface ChannelQuery {
   countries?: string[];
   categories?: string[];
   languages?: string[];
+  qualities?: string[];
   sort?: "name" | "country" | "quality";
   nsfw?: boolean;
   page?: number;

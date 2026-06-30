@@ -1,14 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Channel } from "@/lib/types";
+import { pushRecent } from "@/lib/store";
+import ChannelCard from "./ChannelCard";
+import FavoriteButton from "./FavoriteButton";
 import Player from "./Player";
-import { ExternalIcon, TvIcon } from "./icons";
+import { CheckIcon, CopyIcon, ExternalIcon, LinkIcon, TvIcon } from "./icons";
 
-export default function WatchView({ channel }: { channel: Channel }) {
+export default function WatchView({
+  channel,
+  related,
+}: {
+  channel: Channel;
+  related: Channel[];
+}) {
   const [sourceIdx, setSourceIdx] = useState(0);
+  const [copied, setCopied] = useState(false);
   const stream = channel.streams[sourceIdx] ?? channel.streams[0];
+
+  // Record this channel in watch history once on mount.
+  useEffect(() => {
+    pushRecent(channel);
+  }, [channel]);
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(stream.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard blocked — no-op */
+    }
+  };
 
   return (
     <div className="animate-fade-in mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
@@ -40,13 +65,43 @@ export default function WatchView({ channel }: { channel: Channel }) {
               .join(" · ") || "Live stream"}
           </p>
         </div>
+      </div>
 
+      {/* Action bar */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <FavoriteButton
+          channel={channel}
+          withLabel
+          className="rounded-lg border border-[var(--color-border)] px-3 py-2 hover:border-white/20"
+        />
+        <button
+          onClick={copyLink}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-zinc-300 transition-colors hover:border-white/20"
+        >
+          {copied ? (
+            <>
+              <CheckIcon className="h-4 w-4 text-emerald-400" /> Copied
+            </>
+          ) : (
+            <>
+              <CopyIcon className="h-4 w-4" /> Copy stream link
+            </>
+          )}
+        </button>
+        <a
+          href={stream.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-zinc-300 transition-colors hover:border-white/20"
+        >
+          <LinkIcon className="h-4 w-4" /> Open in player
+        </a>
         {channel.website && (
           <a
             href={channel.website}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-zinc-300 transition-colors hover:border-white/20"
+            className="ml-auto inline-flex items-center gap-1.5 text-sm text-[var(--color-accent)] hover:underline"
           >
             Website <ExternalIcon className="h-3.5 w-3.5" />
           </a>
@@ -98,6 +153,20 @@ export default function WatchView({ channel }: { channel: Channel }) {
             </span>
           ))}
         </div>
+      )}
+
+      {/* Related channels */}
+      {related.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-200">
+            Related channels
+          </h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {related.map((c) => (
+              <ChannelCard key={c.id} channel={c} />
+            ))}
+          </div>
+        </section>
       )}
 
       <p className="mt-8 text-xs text-zinc-600">

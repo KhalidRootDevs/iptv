@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import Brand from "@/components/Brand";
 import WatchView from "@/components/WatchView";
 import { BackIcon } from "@/components/icons";
-import { getChannel } from "@/lib/iptv";
+import { getChannel, getRelated } from "@/lib/iptv";
 
 export const revalidate = 3600;
 
@@ -28,6 +28,7 @@ export default async function WatchPage({ params }: Props) {
   const { id } = await params;
   const channel = await getChannel(decodeURIComponent(id));
   if (!channel || channel.streams.length === 0) notFound();
+  const related = await getRelated(channel);
 
   return (
     <div className="min-h-screen">
@@ -46,7 +47,7 @@ export default async function WatchPage({ params }: Props) {
         </div>
       </header>
 
-      <WatchView channel={channel} />
+      <WatchView channel={channel} related={related} />
     </div>
   );
 }

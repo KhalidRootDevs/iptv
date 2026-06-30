@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { Channel } from "@/lib/types";
+import FavoriteButton from "./FavoriteButton";
 import { PlayIcon, TvIcon } from "./icons";
 
 export default function ChannelCard({ channel }: { channel: Channel }) {
@@ -34,6 +35,11 @@ export default function ChannelCard({ channel }: { channel: Channel }) {
             {channel.bestQuality}
           </span>
         )}
+
+        <FavoriteButton
+          channel={channel}
+          className="absolute left-2 top-2 rounded-md bg-black/45 p-1 backdrop-blur"
+        />
 
         <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 group-hover:opacity-100">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-black shadow-lg">

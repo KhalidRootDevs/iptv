@@ -107,6 +107,14 @@ export const SortIcon = (p: IconProps) => (
   </svg>
 );
 
+export const GaugeIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
+    <path d="m13.4 12.6 3.6-3.6" />
+    <path d="M3.3 17a9 9 0 1 1 17.4 0" />
+  </svg>
+);
+
 export const ChartIcon = (p: IconProps) => (
   <svg {...base(p)}>
     <path d="M3 3v16a2 2 0 0 0 2 2h16" />
@@ -127,6 +135,40 @@ export const AlertIcon = (p: IconProps) => (
     <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z" />
     <path d="M12 9v4" />
     <path d="M12 17h.01" />
+  </svg>
+);
+
+export const StarIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5-5.9-3.1-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" />
+  </svg>
+);
+
+export const CopyIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <rect x="9" y="9" width="11" height="11" rx="2" />
+    <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+  </svg>
+);
+
+export const CheckIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
+
+export const LinkIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5" />
+    <path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5" />
+  </svg>
+);
+
+export const TrashIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M3 6h18" />
+    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
   </svg>
 );
 

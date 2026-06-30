@@ -157,6 +157,47 @@ export default function Player({ stream, poster }: PlayerProps) {
     else el.requestFullscreen().catch(() => {});
   }, []);
 
+  // Keyboard shortcuts: space/k play, m mute, f fullscreen, arrows volume/seek.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && /^(input|textarea|select)$/i.test(t.tagName)) return;
+      const v = videoRef.current;
+      if (!v) return;
+      switch (e.key) {
+        case " ":
+        case "k":
+          e.preventDefault();
+          if (v.paused) v.play().catch(() => {});
+          else v.pause();
+          break;
+        case "m":
+          v.muted = !v.muted;
+          break;
+        case "f":
+          toggleFullscreen();
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          v.volume = Math.min(1, v.volume + 0.1);
+          v.muted = false;
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          v.volume = Math.max(0, v.volume - 0.1);
+          break;
+        case "ArrowRight":
+          if (isFinite(v.duration)) v.currentTime += 10;
+          break;
+        case "ArrowLeft":
+          if (isFinite(v.duration)) v.currentTime -= 10;
+          break;
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [toggleFullscreen]);
+
   return (
     <div
       ref={containerRef}

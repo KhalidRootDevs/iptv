@@ -38,6 +38,20 @@ function qualityRank(q: string | null): number {
   return m ? parseInt(m[1], 10) : 0;
 }
 
+// Bucket a quality into a coarse, filterable tier.
+const QUALITY_TIERS: { value: string; label: string; min: number }[] = [
+  { value: "uhd", label: "4K / UHD", min: 2160 },
+  { value: "fhd", label: "Full HD (1080p)", min: 1080 },
+  { value: "hd", label: "HD (720p)", min: 720 },
+  { value: "sd", label: "SD", min: 1 },
+];
+
+function qualityBucket(q: string | null): string | null {
+  const r = qualityRank(q);
+  if (r <= 0) return null;
+  return QUALITY_TIERS.find((t) => r >= t.min)?.value ?? null;
+}
+
 interface Dataset {
   channels: Channel[];
   byId: Map<string, Channel>;
@@ -160,6 +174,7 @@ async function build(): Promise<Dataset> {
   const countryCounts = new Map<string, number>();
   const categoryCounts = new Map<string, number>();
   const languageCounts = new Map<string, number>();
+  const qualityCounts = new Map<string, number>();
   for (const ch of result) {
     if (ch.countryCode)
       countryCounts.set(
@@ -170,7 +185,15 @@ async function build(): Promise<Dataset> {
       categoryCounts.set(cat, (categoryCounts.get(cat) ?? 0) + 1);
     for (const lang of ch.languages)
       languageCounts.set(lang, (languageCounts.get(lang) ?? 0) + 1);
+    const bucket = qualityBucket(ch.bestQuality);
+    if (bucket) qualityCounts.set(bucket, (qualityCounts.get(bucket) ?? 0) + 1);
   }
+
+  const qualityOptions: FilterOption[] = QUALITY_TIERS.map((t) => ({
+    value: t.value,
+    label: t.label,
+    count: qualityCounts.get(t.value) ?? 0,
+  })).filter((o) => o.count > 0);
 
   const countryOptions: FilterOption[] = [...countryCounts.entries()]
     .map(([code, count]) => {
@@ -205,6 +228,7 @@ async function build(): Promise<Dataset> {
       countries: countryOptions,
       categories: categoryOptions,
       languages: languageOptions,
+      qualities: qualityOptions,
       totalChannels: result.length,
     },
   };
@@ -235,6 +259,26 @@ export async function getFilters(): Promise<Filters> {
 export async function getChannel(id: string): Promise<Channel | null> {
   const ds = await getDataset();
   return ds.byId.get(id) ?? null;
+}
+
+export async function getRelated(
+  channel: Channel,
+  limit = 12,
+): Promise<Channel[]> {
+  const ds = await getDataset();
+  const cats = new Set(channel.categoryIds);
+  const scored: { c: Channel; score: number }[] = [];
+
+  for (const c of ds.channels) {
+    if (c.id === channel.id || c.isNsfw) continue;
+    let score = 0;
+    if (channel.countryCode && c.countryCode === channel.countryCode) score += 2;
+    if (cats.size && c.categoryIds.some((id) => cats.has(id))) score += 3;
+    if (score > 0) scored.push({ c, score });
+  }
+
+  scored.sort((a, b) => b.score - a.score || a.c.name.localeCompare(b.c.name));
+  return scored.slice(0, limit).map((s) => s.c);
 }
 
 export async function getStats(): Promise<Stats> {
@@ -297,6 +341,7 @@ export async function queryChannels(q: ChannelQuery): Promise<ChannelPage> {
   const countries = q.countries?.length ? new Set(q.countries) : null;
   const categories = q.categories?.length ? new Set(q.categories) : null;
   const languages = q.languages?.length ? new Set(q.languages) : null;
+  const qualities = q.qualities?.length ? new Set(q.qualities) : null;
 
   if (!q.nsfw) items = items.filter((c) => !c.isNsfw);
   if (countries)
@@ -305,6 +350,12 @@ export async function queryChannels(q: ChannelQuery): Promise<ChannelPage> {
     items = items.filter((c) => c.categoryIds.some((id) => categories.has(id)));
   if (languages)
     items = items.filter((c) => c.languages.some((l) => languages.has(l)));
+  if (qualities) {
+    items = items.filter((c) => {
+      const b = qualityBucket(c.bestQuality);
+      return b !== null && qualities.has(b);
+    });
+  }
   if (search)
     items = items.filter(
       (c) =>

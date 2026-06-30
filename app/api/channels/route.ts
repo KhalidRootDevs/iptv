@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
       countries: list("country"),
       categories: list("category"),
       languages: list("language"),
+      qualities: list("quality"),
       nsfw: sp.get("nsfw") === "true",
       sort,
       page: Number(sp.get("page")) || 1,

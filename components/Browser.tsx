@@ -3,19 +3,25 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Channel, ChannelPage, Filters } from "@/lib/types";
+import { clearRecents, useFavorites, useRecents } from "@/lib/store";
 import Brand from "./Brand";
 import ChannelCard from "./ChannelCard";
 import FilterSection from "./FilterSection";
 import {
   ChartIcon,
   FilterIcon,
+  GaugeIcon,
   GlobeIcon,
   LangIcon,
   LayersIcon,
   SearchIcon,
   SortIcon,
+  StarIcon,
+  TrashIcon,
   TvIcon,
 } from "./icons";
+
+type View = "all" | "favorites" | "recent";
 
 interface Props {
   filters: Filters;
@@ -36,7 +42,12 @@ export default function Browser({ filters, initial }: Props) {
   const [countries, setCountries] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [languages, setLanguages] = useState<string[]>([]);
+  const [qualities, setQualities] = useState<string[]>([]);
   const [sort, setSort] = useState<Sort>("name");
+
+  const [view, setView] = useState<View>("all");
+  const favorites = useFavorites();
+  const recents = useRecents();
 
   const [items, setItems] = useState<Channel[]>(initial.items);
   const [total, setTotal] = useState(initial.total);
@@ -67,6 +78,7 @@ export default function Browser({ filters, initial }: Props) {
       if (countries.length) params.set("country", countries.join(","));
       if (categories.length) params.set("category", categories.join(","));
       if (languages.length) params.set("language", languages.join(","));
+      if (qualities.length) params.set("quality", qualities.join(","));
 
       try {
         const res = await fetch(`/api/channels?${params}`);
@@ -84,7 +96,7 @@ export default function Browser({ filters, initial }: Props) {
         if (id === reqId.current) setLoading(false);
       }
     },
-    [debounced, countries, categories, languages, sort],
+    [debounced, countries, categories, languages, qualities, sort],
   );
 
   const isFirst = useRef(true);
@@ -103,11 +115,12 @@ export default function Browser({ filters, initial }: Props) {
     setCountries([]);
     setCategories([]);
     setLanguages([]);
+    setQualities([]);
     setSort("name");
   };
 
   const activeFilterCount =
-    countries.length + categories.length + languages.length;
+    countries.length + categories.length + languages.length + qualities.length;
 
   const sidebar = (
     <div className="flex flex-col">
@@ -139,6 +152,14 @@ export default function Browser({ filters, initial }: Props) {
         onToggle={(v) => setCategories((c) => toggle(c, v))}
         onClear={() => setCategories([])}
         searchable
+      />
+      <FilterSection
+        title="Quality"
+        icon={<GaugeIcon className="h-4 w-4" />}
+        options={filters.qualities}
+        values={qualities}
+        onToggle={(v) => setQualities((c) => toggle(c, v))}
+        onClear={() => setQualities([])}
       />
       <FilterSection
         title="Language"
@@ -210,76 +231,106 @@ export default function Browser({ filters, initial }: Props) {
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col">
-          {/* Category quick-filter bar — horizontal scroll */}
+          {/* View tabs + (in All view) category quick-filter bar */}
           <div className="shrink-0 border-b border-[var(--color-border)] py-3">
-            <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <Chip
+            <div className="mb-3 flex gap-1.5">
+              <Tab
                 label="All"
-                active={categories.length === 0}
-                onClick={() => setCategories([])}
+                active={view === "all"}
+                onClick={() => setView("all")}
               />
-              {filters.categories.map((c) => (
-                <Chip
-                  key={c.value}
-                  label={c.label}
-                  count={c.count}
-                  active={categories.includes(c.value)}
-                  onClick={() => setCategories((p) => toggle(p, c.value))}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto py-4">
-            <div className="mb-4 flex items-baseline justify-between">
-              <p className="text-sm text-[var(--color-muted)]">
-                <span className="font-semibold text-zinc-100">
-                  {total.toLocaleString()}
-                </span>{" "}
-                channels
-              </p>
-              {loading && (
-                <span className="text-xs text-zinc-500">Loading…</span>
+              <Tab
+                label="Favorites"
+                count={favorites.length}
+                icon={<StarIcon className="h-3.5 w-3.5" />}
+                active={view === "favorites"}
+                onClick={() => setView("favorites")}
+              />
+              <Tab
+                label="Recent"
+                count={recents.length}
+                active={view === "recent"}
+                onClick={() => setView("recent")}
+              />
+              {view === "recent" && recents.length > 0 && (
+                <button
+                  onClick={clearRecents}
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-[var(--color-muted)] transition-colors hover:text-zinc-200"
+                >
+                  <TrashIcon className="h-3.5 w-3.5" /> Clear
+                </button>
               )}
             </div>
 
-            {error && (
-              <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
-                {error}
-              </div>
-            )}
-
-            {items.length === 0 && !loading ? (
-              <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
-                <TvIcon className="h-10 w-10 text-zinc-700" />
-                <p className="text-[var(--color-muted)]">
-                  No channels match your filters.
-                </p>
-                <button
-                  onClick={resetAll}
-                  className="text-sm font-medium text-[var(--color-accent)] hover:underline"
-                >
-                  Reset filters
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-                {items.map((ch) => (
-                  <ChannelCard key={ch.id} channel={ch} />
+            {view === "all" && (
+              <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <Chip
+                  label="All"
+                  active={categories.length === 0}
+                  onClick={() => setCategories([])}
+                />
+                {filters.categories.map((c) => (
+                  <Chip
+                    key={c.value}
+                    label={c.label}
+                    count={c.count}
+                    active={categories.includes(c.value)}
+                    onClick={() => setCategories((p) => toggle(p, c.value))}
+                  />
                 ))}
               </div>
             )}
+          </div>
 
-            {hasMore && (
-              <div className="mt-8 flex justify-center">
-                <button
-                  onClick={() => fetchPage(page + 1, true)}
-                  disabled={loading}
-                  className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-3 text-sm font-medium text-zinc-200 transition-colors hover:border-white/25 disabled:opacity-50"
-                >
-                  {loading ? "Loading…" : "Load more"}
-                </button>
-              </div>
+          <div className="min-h-0 flex-1 overflow-y-auto py-4">
+            {view === "all" ? (
+              <>
+                <div className="mb-4 flex items-baseline justify-between">
+                  <p className="text-sm text-[var(--color-muted)]">
+                    <span className="font-semibold text-zinc-100">
+                      {total.toLocaleString()}
+                    </span>{" "}
+                    channels
+                  </p>
+                  {loading && (
+                    <span className="text-xs text-zinc-500">Loading…</span>
+                  )}
+                </div>
+
+                {error && (
+                  <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+                    {error}
+                  </div>
+                )}
+
+                {items.length === 0 && !loading ? (
+                  <EmptyState
+                    text="No channels match your filters."
+                    actionLabel="Reset filters"
+                    onAction={resetAll}
+                  />
+                ) : (
+                  <Grid channels={items} />
+                )}
+
+                {hasMore && (
+                  <div className="mt-8 flex justify-center">
+                    <button
+                      onClick={() => fetchPage(page + 1, true)}
+                      disabled={loading}
+                      className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-3 text-sm font-medium text-zinc-200 transition-colors hover:border-white/25 disabled:opacity-50"
+                    >
+                      {loading ? "Loading…" : "Load more"}
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <LocalView
+                view={view}
+                channels={view === "favorites" ? favorites : recents}
+                onBrowse={() => setView("all")}
+              />
             )}
           </div>
         </main>
@@ -309,6 +360,106 @@ export default function Browser({ filters, initial }: Props) {
         </div>
       )}
     </div>
+  );
+}
+
+function Grid({ channels }: { channels: Channel[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+      {channels.map((ch) => (
+        <ChannelCard key={ch.id} channel={ch} />
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({
+  text,
+  actionLabel,
+  onAction,
+}: {
+  text: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+      <TvIcon className="h-10 w-10 text-zinc-700" />
+      <p className="text-[var(--color-muted)]">{text}</p>
+      {actionLabel && onAction && (
+        <button
+          onClick={onAction}
+          className="text-sm font-medium text-[var(--color-accent)] hover:underline"
+        >
+          {actionLabel}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function LocalView({
+  view,
+  channels,
+  onBrowse,
+}: {
+  view: View;
+  channels: Channel[];
+  onBrowse: () => void;
+}) {
+  if (channels.length === 0) {
+    return (
+      <EmptyState
+        text={
+          view === "favorites"
+            ? "No favorites yet. Tap the ★ on any channel to save it."
+            : "Nothing watched yet. Channels you open appear here."
+        }
+        actionLabel="Browse channels"
+        onAction={onBrowse}
+      />
+    );
+  }
+  return (
+    <>
+      <p className="mb-4 text-sm text-[var(--color-muted)]">
+        <span className="font-semibold text-zinc-100">{channels.length}</span>{" "}
+        {view === "favorites" ? "favorite" : "recently watched"}
+        {channels.length === 1 ? "" : view === "favorites" ? "s" : ""}
+      </p>
+      <Grid channels={channels} />
+    </>
+  );
+}
+
+function Tab({
+  label,
+  count,
+  icon,
+  active,
+  onClick,
+}: {
+  label: string;
+  count?: number;
+  icon?: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+        active
+          ? "bg-[var(--color-surface-2)] text-white"
+          : "text-[var(--color-muted)] hover:text-zinc-200"
+      }`}
+    >
+      {icon}
+      {label}
+      {count !== undefined && count > 0 && (
+        <span className="text-xs text-zinc-500">{count}</span>
+      )}
+    </button>
   );
 }
 
